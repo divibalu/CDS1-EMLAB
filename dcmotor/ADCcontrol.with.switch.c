@@ -19,7 +19,7 @@ void WaitForInterrupt(void);  // low power mode
 void Port_Init(void);        // start sound output
 void SysFun(void);
 void SysLoad(unsigned long period);
-
+unsigned int SW;
 unsigned int ADCvalue;
 unsigned long T=1600000 ;
 unsigned long TON=800000;
@@ -40,22 +40,32 @@ int main(void){
 	
 	/*Initialize ports , ADC and timers*/
   while(1){   
-		/*Your code goes here*/
+       SW = GPIO_PORTA_DATA_R&0x04;     // read PA2 into SW1
+      if(SW){
+GPIO_PORTA_DATA_R |=0x01; //PA0 HIGH
+GPIO_PORTA_DATA_R&=~0x02; //PA1 LOW
+} else
+{
+GPIO_PORTA_DATA_R |=0x02; //PA1 HIGH
+GPIO_PORTA_DATA_R&=~0x01; //PA0 LOW
+}
+
 		 ADCvalue=ADC0_InSeq3();
 		T1=TON+(ADCvalue *175);
-	if (ADCvalue == 0){
+	if (ADCvalue==0){
 		GPIO_PORTA_DATA_R |=0x20;
 		SysLoad(TON);
 		GPIO_PORTA_DATA_R =~0x20;
 		SysLoad(TON);
   }
-else {
-    GPIO_PORTA_DATA_R |=0x20;
+else{
+		GPIO_PORTA_DATA_R |=0x20;
 		SysLoad(T1);
 		GPIO_PORTA_DATA_R =~0x20;
-		SysLoad(T-T1);}
+		SysLoad(T-T1);
 }
 	}
+}
 // **************Port_Init*********************
 // Initialize SysTick periodic interrupts
 // Input: none
@@ -64,11 +74,11 @@ void Port_Init(void){ unsigned long volatile delay;
   SYSCTL_RCGC2_R |= 0x00000001; // activate port A
   delay = SYSCTL_RCGC2_R;
   GPIO_PORTA_AMSEL_R &= ~0x20;      // no analog 
-  GPIO_PORTA_PCTL_R &= ~0x00F00000; // regular function
-  GPIO_PORTA_DIR_R |= 0x20;     // make PA5 out
+  GPIO_PORTA_PCTL_R &= ~0x00F00FFF; // regular function
+  GPIO_PORTA_DIR_R |= 0x23;     // make PA5 out
   GPIO_PORTA_DR8R_R |= 0x20;    // can drive up to 8mA out
-  GPIO_PORTA_AFSEL_R &= ~0x20;  // disable alt funct on PA5
-  GPIO_PORTA_DEN_R |= 0x20;     // enable digital I/O on PA5
+  GPIO_PORTA_AFSEL_R &= ~0x27;  // disable alt funct on PA5
+  GPIO_PORTA_DEN_R |= 0x27;     // enable digital I/O on PA5
 }
 
 void SysLoad(unsigned long period){
